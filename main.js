@@ -1,43 +1,166 @@
 import * as THREE from 'three';
-import { AsciiEffect } from 'three/addons/effects/AsciiEffect.js';
 
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize(window.innerWidth, window.innerHeight);
+import Stats from 'three/addons/libs/stats.module.js';
 
 
-const effect = new AsciiEffect( renderer, ' .:-+*=%@#', { invert: true } );
-effect.setSize( window.innerWidth, window.innerHeight );
-effect.domElement.style.color = 'white';
-effect.domElement.style.backgroundColor = 'black';
-document.body.appendChild(effect.domElement);
+let camera, scene, renderer, stats, parameters;
+let mouseX = 0, mouseY = 0;
 
-const geometry = new THREE.BoxGeometry(1,1,1);
-const material = new THREE.MeshNormalMaterial();
+let windowHalfX = window.innerWidth / 2;
+let windowHalfY = window.innerHeight / 2;
 
-const cube = new THREE.Mesh( new THREE.SphereGeometry( 200, 20, 10 ), new THREE.MeshPhongMaterial( { flatShading: true } ) );
+const materials = [];
 
-scene.add(cube);
-camera.position.z = 500;
+init();
 
-const light = new THREE.AmbientLight(0xffffff);
-scene.add(light);
+function init() {
 
-window.addEventListener("resize", onWindowResize);
+    camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 2000 );
+    camera.position.z = 1000;
+
+    scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2( 0x000000, 0.0008 );
+
+    const geometry = new THREE.BufferGeometry();
+    const vertices = [];
+
+    const textureLoader = new THREE.TextureLoader();
+
+    const assignSRGB = ( texture ) => {
+
+        texture.colorSpace = THREE.SRGBColorSpace;
+
+    };
+    const sprite1 = textureLoader.load( 'textures/snowflake1.png', assignSRGB );
+    const sprite2 = textureLoader.load( 'textures/snowflake2.png', assignSRGB );
+    const sprite3 = textureLoader.load( 'textures/snowflake3.png', assignSRGB );
+    const sprite4 = textureLoader.load( 'textures/snowflake4.png', assignSRGB );
+    const sprite5 = textureLoader.load( 'textures/snowflake5.png', assignSRGB );
+
+    for ( let i = 0; i < 1500; i ++ ) {
+
+        const x = Math.random() * 2000 - 1000;
+        const y = Math.random() * 2000 - 1000;
+        const z = Math.random() * 2000 - 1000;
+
+        vertices.push( x, y, z );
+
+    }
+
+    geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
+
+    parameters = [
+        [[ 1.0, 1.0, 1.0 ], sprite2, 20 ],
+        [[ 0.95, 1.0, 1.0 ], sprite3, 15 ],
+        [[ 0.90, 0.05, 0.5 ], sprite1, 10 ],
+        [[ 0.85, 0, 0.5 ], sprite5, 8 ],
+        [[ 0.80, 0, 0.5 ], sprite4, 5 ]
+    ];
+
+    for ( let i = 0; i < parameters.length; i ++ ) {
+
+        const color = parameters[ i ][ 0 ];
+        const sprite = parameters[ i ][ 1 ];
+        const size = parameters[ i ][ 2 ];
+
+        materials[ i ] = new THREE.PointsMaterial( { size: size, map: sprite, blending: THREE.AdditiveBlending, depthTest: false, transparent: true } );
+        materials[ i ].color.setHSL( color[ 0 ], color[ 1 ], color[ 2 ], THREE.SRGBColorSpace );
+
+        const particles = new THREE.Points( geometry, materials[ i ] );
+
+        particles.rotation.x = Math.random() * 6;
+        particles.rotation.y = Math.random() * 6;
+        particles.rotation.z = Math.random() * 6;
+
+        scene.add( particles );
+
+    }
+
+    //
+
+    renderer = new THREE.WebGLRenderer();
+    renderer.setPixelRatio( window.devicePixelRatio );
+    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setAnimationLoop( animate );
+    document.body.appendChild( renderer.domElement );
+
+    //
+
+    stats = new Stats();
+    document.body.appendChild( stats.dom );
+
+    //
+
+    document.body.style.touchAction = 'none';
+    document.body.addEventListener( 'pointermove', onPointerMove );
+
+    //
+
+    window.addEventListener( 'resize', onWindowResize );
+
+}
 
 function onWindowResize() {
+
+    windowHalfX = window.innerWidth / 2;
+    windowHalfY = window.innerHeight / 2;
+
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
 
     renderer.setSize( window.innerWidth, window.innerHeight );
-    effect.setSize( window.innerWidth, window.innerHeight );
+
 }
 
-function animate() {
-    cube.rotation.x += 0.005;
-    cube.rotation.y += 0.005;
-    effect.render(scene, camera);
+function onPointerMove( event ) {
+
+    if ( event.isPrimary === false ) return;
+
+    mouseX = event.clientX - windowHalfX;
+    //mouseY = event.clientY - windowHalfY;
+
 }
-renderer.setAnimationLoop(animate);
+
+//
+
+function animate() {
+
+    render();
+    stats.update();
+
+}
+
+function render() {
+
+    const time = Date.now() * 0.00005;
+
+    camera.position.x += ( mouseX - camera.position.x ) * 0.05;
+    camera.position.y += ( - mouseY - camera.position.y ) * 0.05;
+
+
+    camera.lookAt( scene.position );
+
+    for ( let i = 0; i < scene.children.length; i ++ ) {
+
+        const object = scene.children[ i ];
+
+        if ( object instanceof THREE.Points ) {
+
+            object.rotation.y = time * ( i < 4 ? i + 1 : - ( i + 1 ) );
+
+        }
+
+    }
+
+    for ( let i = 0; i < materials.length; i ++ ) {
+
+        const color = parameters[ i ][ 0 ];
+
+        const h = ( 360 * ( color[ 0 ] + time ) % 360 ) / 360;
+        materials[ i ].color.setHSL( h, color[ 1 ], color[ 2 ], THREE.SRGBColorSpace );
+
+    }
+
+    renderer.render( scene, camera );
+
+}
