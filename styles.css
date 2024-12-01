@@ -1,4 +1,14 @@
-
 body {
-    margin: 0;
+    margin: 0;    
+    color: white;
+}
+
+#info {
+    display: flex;
+    position: absolute;
+    justify-content: center;
+    align-self: center;
+    padding-left: 41%;
+    padding-top: 18rem;
+    font-size: 5rem;
 }

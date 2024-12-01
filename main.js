@@ -1,80 +1,23 @@
 import * as THREE from 'three';
-
 import Stats from 'three/addons/libs/stats.module.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 
-let camera, scene, renderer, stats, parameters;
+let camera, scene, renderer, stats;
 let mouseX = 0, mouseY = 0;
 
 let windowHalfX = window.innerWidth / 2;
 let windowHalfY = window.innerHeight / 2;
 
-const materials = [];
 
 init();
 
+
 function init() {
 
-    camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 2000 );
-    camera.position.z = 1000;
-
+    camera = new THREE.PerspectiveCamera( 100, window.innerWidth / window.innerHeight, 0.1, 5000 );
+    camera.position.set(150, -100, 250);
     scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2( 0x000000, 0.0008 );
-
-    const geometry = new THREE.BufferGeometry();
-    const vertices = [];
-
-    const textureLoader = new THREE.TextureLoader();
-
-    const assignSRGB = ( texture ) => {
-
-        texture.colorSpace = THREE.SRGBColorSpace;
-
-    };
-    const sprite1 = textureLoader.load( 'textures/snowflake1.png', assignSRGB );
-    const sprite2 = textureLoader.load( 'textures/snowflake2.png', assignSRGB );
-    const sprite3 = textureLoader.load( 'textures/snowflake3.png', assignSRGB );
-    const sprite4 = textureLoader.load( 'textures/snowflake4.png', assignSRGB );
-    const sprite5 = textureLoader.load( 'textures/snowflake5.png', assignSRGB );
-
-    for ( let i = 0; i < 1500; i ++ ) {
-
-        const x = Math.random() * 2000 - 1000;
-        const y = Math.random() * 2000 - 1000;
-        const z = Math.random() * 2000 - 1000;
-
-        vertices.push( x, y, z );
-
-    }
-
-    geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( vertices, 3 ) );
-
-    parameters = [
-        [[ 1.0, 1.0, 1.0 ], sprite2, 20 ],
-        [[ 0.95, 1.0, 1.0 ], sprite3, 15 ],
-        [[ 0.90, 0.05, 0.5 ], sprite1, 10 ],
-        [[ 0.85, 0, 0.5 ], sprite5, 8 ],
-        [[ 0.80, 0, 0.5 ], sprite4, 5 ]
-    ];
-
-    for ( let i = 0; i < parameters.length; i ++ ) {
-
-        const color = parameters[ i ][ 0 ];
-        const sprite = parameters[ i ][ 1 ];
-        const size = parameters[ i ][ 2 ];
-
-        materials[ i ] = new THREE.PointsMaterial( { size: size, map: sprite, blending: THREE.AdditiveBlending, depthTest: false, transparent: true } );
-        materials[ i ].color.setHSL( color[ 0 ], color[ 1 ], color[ 2 ], THREE.SRGBColorSpace );
-
-        const particles = new THREE.Points( geometry, materials[ i ] );
-
-        particles.rotation.x = Math.random() * 6;
-        particles.rotation.y = Math.random() * 6;
-        particles.rotation.z = Math.random() * 6;
-
-        scene.add( particles );
-
-    }
 
     //
 
@@ -83,20 +26,80 @@ function init() {
     renderer.setSize( window.innerWidth, window.innerHeight );
     renderer.setAnimationLoop( animate );
     document.body.appendChild( renderer.domElement );
-
+    renderer.setClearColor( '#1c1c1a' );
     //
-
-    stats = new Stats();
-    document.body.appendChild( stats.dom );
-
+    // FOR DISPLAYING FPS
+    //stats = new Stats();
+    //document.body.appendChild( stats.dom );
     //
 
     document.body.style.touchAction = 'none';
-    document.body.addEventListener( 'pointermove', onPointerMove );
-
+    const controls = new OrbitControls( camera, renderer.domElement );
+    controls.addEventListener( 'change', render ); // use only if there is no animation loop
+    controls.minDistance = 150;
+    controls.maxDistance = 500;
+    controls.enablePan = false;
     //
 
+    const light = new THREE.AmbientLight(0xffffff);
+    const light2 = new THREE.PointLight(0xff3232, 4, 0, 0);
+    camera.add(light2);
+    light2.position.set(900, 50, 40);
+    light2.lookAt(camera.position.x)
+    scene.add(light2);
+    scene.add(light);
+
+    
+    const geometry = new THREE.SphereGeometry(100, 32, 16);
+    const geometry2 = new THREE.RingGeometry(130, 160, 64, 2);
+    const material = new THREE.MeshPhongMaterial( { color: 0xcc2438});
+    const material2 = new THREE.MeshNormalMaterial({ 
+        color: 0xcc2438,
+        side: THREE.DoubleSide // Ensures both sides of the ring are visible
+    });
+    const cube = new THREE.Mesh(geometry, material);
+    const ring = new THREE.Mesh(geometry2, material2);
+    scene.add(cube);
+    //scene.add(ring);
+
+
     window.addEventListener( 'resize', onWindowResize );
+    animate();
+}
+const v = new THREE.Vector2();
+
+function randomPointCircle( radius ) {
+
+  const x = THREE.MathUtils.randFloat( -1, 1 );
+  const y = THREE.MathUtils.randFloat( -1, 1 );
+  const r = THREE.MathUtils.randFloat( 0.9 * radius, 1.2 * radius );
+  const normalizationFactor = 1 / Math.sqrt( x * x + y * y );
+ 
+  v.x = x * normalizationFactor * r;
+  v.y = y * normalizationFactor * r;
+
+  return v;
+}
+initPoints();
+function initPoints() {
+  
+  const geometry = new THREE.BufferGeometry();
+  
+  var positions = [];
+  
+  for (var i = 0; i < 50000; i ++ ) {
+    
+    var vertex = randomPointCircle( 300 );
+    positions.push( vertex.x * 0.5, vertex.y * 0.5, 0 );
+    
+  }
+  
+  geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
+
+  const material = new THREE.PointsMaterial( { color: 0xffffff, size: 0.001 } );
+  const particles = new THREE.Points(geometry, material);
+  particles.rotateX(21);
+  scene.add( particles );
 
 }
 
@@ -112,55 +115,14 @@ function onWindowResize() {
 
 }
 
-function onPointerMove( event ) {
-
-    if ( event.isPrimary === false ) return;
-
-    mouseX = event.clientX - windowHalfX;
-    //mouseY = event.clientY - windowHalfY;
-
-}
-
 //
 
 function animate() {
-
     render();
-    stats.update();
-
 }
 
 function render() {
 
-    const time = Date.now() * 0.00005;
-
-    camera.position.x += ( mouseX - camera.position.x ) * 0.05;
-    camera.position.y += ( - mouseY - camera.position.y ) * 0.05;
-
-
     camera.lookAt( scene.position );
-
-    for ( let i = 0; i < scene.children.length; i ++ ) {
-
-        const object = scene.children[ i ];
-
-        if ( object instanceof THREE.Points ) {
-
-            object.rotation.y = time * ( i < 4 ? i + 1 : - ( i + 1 ) );
-
-        }
-
-    }
-
-    for ( let i = 0; i < materials.length; i ++ ) {
-
-        const color = parameters[ i ][ 0 ];
-
-        const h = ( 360 * ( color[ 0 ] + time ) % 360 ) / 360;
-        materials[ i ].color.setHSL( h, color[ 1 ], color[ 2 ], THREE.SRGBColorSpace );
-
-    }
-
     renderer.render( scene, camera );
-
 }
