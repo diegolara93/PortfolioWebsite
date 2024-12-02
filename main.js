@@ -3,7 +3,9 @@ import Stats from 'three/addons/libs/stats.module.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 
-let camera, scene, renderer, stats;
+
+let camera, scene, renderer, stats, controls;
+let particles;
 let mouseX = 0, mouseY = 0;
 
 let windowHalfX = window.innerWidth / 2;
@@ -16,7 +18,7 @@ init();
 function init() {
 
     camera = new THREE.PerspectiveCamera( 100, window.innerWidth / window.innerHeight, 0.1, 5000 );
-    camera.position.set(150, -100, 250);
+    camera.position.set(150, 80, 70);
     scene = new THREE.Scene();
 
     //
@@ -34,11 +36,14 @@ function init() {
     //
 
     document.body.style.touchAction = 'none';
-    const controls = new OrbitControls( camera, renderer.domElement );
+    controls = new OrbitControls( camera, renderer.domElement );
     controls.addEventListener( 'change', render ); // use only if there is no animation loop
     controls.minDistance = 150;
     controls.maxDistance = 500;
     controls.enablePan = false;
+    controls.enableZoom = false;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.75;
     //
 
     const light = new THREE.AmbientLight(0xffffff);
@@ -55,8 +60,9 @@ function init() {
     const material = new THREE.MeshPhongMaterial( { color: 0xcc2438});
     const material2 = new THREE.MeshNormalMaterial({ 
         color: 0xcc2438,
-        side: THREE.DoubleSide // Ensures both sides of the ring are visible
+        side: THREE.DoubleSide // Disables face-culling.
     });
+
     const cube = new THREE.Mesh(geometry, material);
     const ring = new THREE.Mesh(geometry2, material2);
     scene.add(cube);
@@ -87,7 +93,7 @@ function initPoints() {
   
   var positions = [];
   
-  for (var i = 0; i < 50000; i ++ ) {
+  for (var i = 0; i < 10000; i ++ ) {
     
     var vertex = randomPointCircle( 300 );
     positions.push( vertex.x * 0.5, vertex.y * 0.5, 0 );
@@ -97,10 +103,9 @@ function initPoints() {
   geometry.setAttribute( 'position', new THREE.Float32BufferAttribute( positions, 3 ) );
 
   const material = new THREE.PointsMaterial( { color: 0xffffff, size: 0.001 } );
-  const particles = new THREE.Points(geometry, material);
+  particles = new THREE.Points(geometry, material);
   particles.rotateX(21);
   scene.add( particles );
-
 }
 
 function onWindowResize() {
@@ -119,10 +124,10 @@ function onWindowResize() {
 
 function animate() {
     render();
+    controls.update();
 }
 
 function render() {
-
     camera.lookAt( scene.position );
     renderer.render( scene, camera );
 }

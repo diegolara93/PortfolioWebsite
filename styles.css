@@ -4,11 +4,12 @@ body {
 }
 
 #info {
+    width: 100%;
+    font: caption;
     display: flex;
     position: absolute;
     justify-content: center;
     align-self: center;
-    padding-left: 41%;
     padding-top: 18rem;
     font-size: 5rem;
 }

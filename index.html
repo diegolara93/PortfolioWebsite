@@ -8,7 +8,11 @@
 </head>
 <body>
     <div id="info">Diego Lara</div>
-    <audio src="audio/the bilinda butchers - secrets [ ezmp3.cc ].mp3" autoplay="autoplay"></audio>
+    <audio id="audio" src="audio/the bilinda butchers - secrets [ ezmp3.cc ].mp3" autoplay="autoplay"></audio>
+    <script>
+        var audio = document.getElementById("audio");
+        audio.volume = 0.1;
+      </script>
     <script type="module" src="main.js"></script>
 </body>
 </html>
